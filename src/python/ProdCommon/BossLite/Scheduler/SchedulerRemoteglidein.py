@@ -82,7 +82,10 @@ class SchedulerRemoteglidein(SchedulerInterface) :
                 fileName=fn.split('/')[-1]
                 fnList.append(fileName)
             shortFilelist= ','.join(fnList)
-        jobRequirements += "transfer_input_files = %s\n" % shortFilelist
+            jobRequirements += "transfer_input_files = %s\n" % shortFilelist
+        else:
+            raise SchedulerError('Fatal','empty globalSandbox')
+
                 
         jdl, sandboxFileList, ce = self.commonJdl(jobRequirements)
         # for some strange reason I need one job to get the executable name
