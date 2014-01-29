@@ -9,7 +9,7 @@ import os, os.path
 
 class ProtocolLStore(Protocol):
     """
-    implementing a "local protocol", using unix system commmands
+    Use native LStore tools to move files
     """
  
     def __init__(self):
@@ -23,7 +23,8 @@ class ProtocolLStore(Protocol):
         exitcode = -1
         outputs = ""
         ll = dest.getLynk()
-        if not ll.startswith('srm://se1.accre.vanderbilt.edu'):
+        if not ll.startswith('srm://se1.accre.vanderbilt.edu') and \
+            not ll.startswith('srm://se3.accre.vanderbilt.edu'):
             # don't let any of this happen if the output's not going
             # to vanderbilt
             raise TransferException("WARNING: Vandy stageout stuff was "+\
@@ -32,7 +33,7 @@ class ProtocolLStore(Protocol):
         dest_fullpath = self._stripPath( ll ) 
         
         if self.checkExists(source, opt):
-            command = os.path.join( self.scriptPath, "vandyCp.sh" )
+            command = os.path.join( self.scriptPath, "vandyCpv2.sh" )
             command = " ".join( [command, source.workon, dest_fullpath] )
             if proxy:
                 command = "X509_USER_PROXY=%s %s" % (proxy, command)
@@ -72,7 +73,8 @@ class ProtocolLStore(Protocol):
         exitcode = -1
         outputs = ""
         ll = source.getLynk()
-        if not ll.startswith('srm://se1.accre.vanderbilt.edu'):
+        if not ll.startswith('srm://se1.accre.vanderbilt.edu') and \
+            not ll.startswith('srm://se3.accre.vanderbilt.edu'):
             # don't let any of this happen if the output's not going
             # to vanderbilt
             raise TransferException("WARNING: Vandy stageout stuff was "+\
@@ -81,7 +83,7 @@ class ProtocolLStore(Protocol):
 
         source_fullpath = ll.split("lstore://",1)[1]
         if self.checkExists(source, opt):
-            cmd = " ".join( os.path.join(self.scriptPath, "vandyRm.sh"),
+            cmd = " ".join( os.path.join(self.scriptPath, "vandyRmv2.sh"),
                             opt,
                             source_fullpath )
             if proxy:
@@ -100,7 +102,8 @@ class ProtocolLStore(Protocol):
         """
         outputs = ""
         ll = source.getLynk()
-        if not ll.startswith('srm://se1.accre.vanderbilt.edu'):
+        if not ll.startswith('srm://se1.accre.vanderbilt.edu') and \
+            not ll.startswith('srm://se3.accre.vanderbilt.edu'):
             # don't let any of this happen if the output's not going
             # to vanderbilt
             raise TransferException("WARNING: Vandy stageout stuff was "+\
@@ -109,7 +112,7 @@ class ProtocolLStore(Protocol):
 
         source_fullpath = self._stripPath(ll)
         if not self.checkExists(source, opt):
-            cmd = " ".join([os.path.join(self.scriptPath, "vandyMkdir.sh"),
+            cmd = " ".join([os.path.join(self.scriptPath, "vandyMkdirv2.sh"),
                             opt,
                             source_fullpath])
             print "Executing %s" % cmd
@@ -196,6 +199,8 @@ class ProtocolLStore(Protocol):
         elif ll.find("file://") != -1:
             fullpath = ll.split("file://",1)[1]
         elif ll.find("srm://se1.accre.vanderbilt.edu") != -1:
+            fullpath = ll.split("SFN=",1)[1]
+        elif ll.find("srm://se3.accre.vanderbilt.edu") != -1:
             fullpath = ll.split("SFN=",1)[1]
         else:
             fullpath = ll
