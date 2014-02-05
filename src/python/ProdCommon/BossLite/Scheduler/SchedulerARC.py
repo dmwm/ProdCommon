@@ -113,13 +113,12 @@ def ARCInfoSplitClusters(output):
 
     cluster = []
     for line in output.split('\n'):
-        if line.find("Execution Target on Computing Service:") >= 0:
+        if line.find("Computing service:") >= 0:
             if cluster:
                 yield cluster
             cluster = [ line ]
         else:
-            if line != "":
-                cluster.append(line)
+            cluster.append(line)
     if cluster:
         yield cluster
 
@@ -580,30 +579,33 @@ class SchedulerARC(SchedulerInterface):
         """
 
         cmd = self.pre_arcCmd + 'arcinfo -l'
+        self.logging.debug("Running command '%s'" % cmd)
         output, s = self.ExecuteCommand(cmd)
 
         clusters = []
         for c_text in ARCInfoSplitClusters(output):
             c = {}
-            c["cluster"] = c_text[0].split(': ')[1]
+            c["cluster"] = None
             c["rte"] = []
             in_rtelist = False
             for line in c_text:
                 if in_rtelist:
-                    if line[0:2] == "  ":
-                        c["rte"].append(line.lstrip())
-                    else:
+                    if line == "":
                         in_rtelist = False
+                    else:
+                        c["rte"].append(line.lstrip())
                 if not in_rtelist:
-                    if line == " Installed application environments:":
+                    if line.find("Installed application environments:") >= 0:
                         in_rtelist = True
+                    elif not c["cluster"] and line.find("Name:") >= 0:
+                        c["cluster"] = line.split(': ')[1]
 
             clusters.append(c)
         return clusters
 
 
 
-    def check_CEs(self, CEs, tags, vos, seList, blacklist, whitelist, full):
+    def check_CEs(self, CEs, tags, vos, seList, blacklist, whitelist, check_RTEs, full):
         """
         Return those CEs that fullfill requirements.
         """
@@ -620,7 +622,7 @@ class SchedulerARC(SchedulerInterface):
             #        self.logging.warning("NOTE: Whitelisted CE %s was found but isn't close to any SE that have the data" % name)
             #    continue
 
-            if count_nonempty(tags) > 0 and not set(tags) <= RTEs:
+            if check_RTEs and count_nonempty(tags) > 0  and not set(tags) <= RTEs:
                 if count_nonempty(whitelist) > 0 and name in whitelist:
                     self.logging.warning("NOTE: Whitelisted CE %s was found but doesn't have all required runtime environments installed" % name)
                 continue
@@ -658,6 +660,17 @@ class SchedulerARC(SchedulerInterface):
             full = (full == "True")
 
         CEs = self.getClusters()
-        self.accepted_CEs = self.check_CEs(CEs, tags, vos, seList, blacklist, whitelist, full)
-        self.logging.debug("lcgInfo found" + str(self.accepted_CEs))
+        self.logging.info("ARC info.sys. found %i clusters in total ..." % len(CEs))
+        if CEs:
+            self.accepted_CEs = self.check_CEs(CEs, tags, vos, seList, blacklist, whitelist, check_RTEs=True, full=full)
+            self.logging.info("... of which %i fulfill our requirements" % len(self.accepted_CEs))
+        else:
+            # Failsafe mode:
+            self.logging.warning("Didn't get any clusters from the info sys. Relying on static list of clusters instead")
+            CEs = [{'cluster': 'jade-cms.hip.fi', 'rte': []},
+                   {'cluster': 'korundi.grid.helsinki.fi', 'rte': []},
+                   {'cluster': 'alcyone-cms.grid.helsinki.fi', 'rte': []},
+                   {'cluster': 'nodeslab-0002.nlab.tb.hiit.fi', 'rte': []}]
+            self.accepted_CEs = self.check_CEs(CEs, tags, vos, seList, blacklist, whitelist, check_RTEs=False, full=full)
+        self.logging.debug("Accepted clusters: " + str(self.accepted_CEs))
         return self.accepted_CEs
