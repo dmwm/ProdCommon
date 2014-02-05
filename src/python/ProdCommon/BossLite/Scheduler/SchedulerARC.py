@@ -135,12 +135,12 @@ def splitARCStatOutput(output):
      s = ""
      for line in output.split('\n'):
 
-          if len(line) == 0:
+          if len(line) == 0 or re.search("no jobs", line, flags=re.I) or line.split()[0] in ['DEBUG:', 'INFO:', 'VERBOSE:']:
                continue
 
           if line[0].isspace():
                s += '\n' + line
-          elif re.match("This job was only very recently submitted", line):
+          elif re.search("this job was.* recently submitted", line, flags=re.I):
                s += ' ' + line
           else:
                if len(s) > 0:
@@ -397,9 +397,11 @@ class SchedulerARC(SchedulerInterface):
 
         cmd = self.pre_arcCmd + 'arcstat -i %s' % jobsFile.name
         output, stat = self.ExecuteCommand(cmd)
+        self.logging.debug("arcstat (%i) said:\n%s" % (stat, output))
         jobsFile.close()
         if stat != 0:
-            raise SchedulerError('%i exit status for arcstat' % stat, output, cmd)
+            msg = '%i exit status for arcstat' % stat
+            self.logging.error(msg)
 
         # Parse output of arcstat
         for jobstring in splitARCStatOutput(output):
@@ -407,9 +409,10 @@ class SchedulerARC(SchedulerInterface):
             arcStat = None
             host = None
             jobExitCode = None
+            arcId = None
 
             if jobstring.find("Job information not found") >= 0:
-                if jobstring.find("This job was very recently submitted") >= 0:
+                if re.search("this job was.* recently submitted", jobstring, flags=re.I) >= 0:
                     arcStat = "ACCEPTING"  # At least approximately true
                 else:
                     arcStat = "UNKNOWN"
@@ -426,6 +429,13 @@ class SchedulerARC(SchedulerInterface):
                 if arcIdMatch:
                     arcId = arcIdMatch.group(1)
                     host = arcIdMatch.group(2)
+
+            elif jobstring.find("Job not found in job list:") >= 0:
+                arcIdMatch = re.search("(\w+://([a-zA-Z0-9.-]+)\S*/\w*)", jobstring)
+                if arcIdMatch:
+                    arcId = arcIdMatch.group(1)
+                    host = arcIdMatch.group(2)
+                arcStat = "UNKNOWN"
             else:
 
                 # With special cases taken care of above, we are left with
@@ -440,31 +450,35 @@ class SchedulerARC(SchedulerInterface):
 
                 for line in jobstring.split('\n'):
 
-                    arcIdMatch = re.match("Job: +(\w+://([a-zA-Z0-9.-]+)\S*/\w*)", line)
+                    arcIdMatch = re.match("job:? +(\w+://([a-zA-Z0-9.-]+)\S*/\w*)", line, flags=re.I)
                     if arcIdMatch:
                         arcId = arcIdMatch.group(1)
                         host = arcIdMatch.group(2)
                         continue
                         
-                    statusMatch = re.match(" +State: *[^(]*\((.+)\)", line)
+                    statusMatch = re.match(" +state: *[^(]*\((.+)\)", line, flags=re.I)
                     if statusMatch:
                         arcStat = statusMatch.group(1)
                         continue
                         
-                    codeMatch = re.match(" +Exit Code: *(\d+)", line)
+                    codeMatch = re.match(" +exit code: *(\d+)", line, flags=re.I)
                     if codeMatch:
                         jobExitCode = codeMatch.group(1)
                         continue
 
-            job = arcId2job[arcId]
-            if arcStat:
-                job.runningJob['statusScheduler'] = Arc2StatusScheduler[arcStat]
-                job.runningJob['status'] = Arc2Status[arcStat]
-                job.runningJob['statusReason'] = Arc2StatusReason[arcStat]
-            if host:
-                job.runningJob['destination'] = host
-            if jobExitCode:
-                job.runningJob['wrapperReturnCode'] = jobExitCode
+            if arcId:
+                job = arcId2job[arcId]
+                if arcStat:
+                    job.runningJob['statusScheduler'] = Arc2StatusScheduler[arcStat]
+                    job.runningJob['status'] = Arc2Status[arcStat]
+                    job.runningJob['statusReason'] = Arc2StatusReason[arcStat]
+                if host:
+                    job.runningJob['destination'] = host
+                if jobExitCode:
+                    job.runningJob['wrapperReturnCode'] = jobExitCode
+            else:
+                self.logging.debug("Huh? No arcId! '%s'" % jobstring)
+                
 
         return
 
