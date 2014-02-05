@@ -22,7 +22,6 @@ from ProdCommon.BossLite.DbObjects.Job import Job
 from ProdCommon.BossLite.DbObjects.Task import Task
 import logging
 import re
-from elementtree import ElementTree as ET
 #import arclib as arc
 
 #
@@ -121,25 +120,6 @@ def ARCInfoSplitClusters(output):
             cluster.append(line)
     if cluster:
         yield cluster
-
-
-def get_id2name():
-    """
-    Create an ARC ID: Job name dictionary.
-    """
-    m = {}
-
-    jobsfile = os.path.join(os.environ['HOME'], ".arc", "jobs.xml")
-    doc = ET.parse(jobsfile)
-    for j in doc.findall('Job'):
-        id = j.find("JobID").text
-        name_elem = j.find("Name")
-        if type(name_elem) != type(None):
-            name = name_elem.text
-        else:
-            name = None
-        m[id] = name
-    return m
 
 
 def splitARCStatOutput(output):
@@ -324,31 +304,41 @@ class SchedulerARC(SchedulerInterface):
         os.remove(xrsl_file)
 
 
-        # build a "job name": "ARC ID" dictionary
-        name2id = {}
-        id2name = get_id2name()
-        subRe = re.compile("Job submitted with jobid: +(\w+://([a-zA-Z0-9.-]+)(:\d+)?(/.*)?/\w+)")
+        # Parse arcsub output
+        subRe = re.compile("job submitted with jobid: +(\w+://([a-zA-Z0-9.-]+)(:\d+)?(/.*)?/\w+)", flags=re.I)
+        failRe = re.compile("the following .* were not submitted", flags=re.I)
+        failed_names = []
+        arcIds = []
+        in_failed_list = False
         for line in output.split('\n'):
+            if in_failed_list:
+                name = line.split(': ')[1]
+                failed_names.append(name)
+                continue
+
             m = re.match(subRe, line)
             if m:
-                arcId = m.group(1)
-                name = id2name[arcId]
-                name2id[name] = arcId
+                arcIds.append(m.group(1))
+            elif re.match(failRe, line):
+                in_failed_list = True
             elif line.find("ERROR") >= 0:
                 self.logging.warning("Found '%s' in arcsub output" % line)
 
+
         # Find job names
+        i = 0
         for job in task.getJobs():
             name = job['name']
-            if name not in name2id:
+
+            if name in failed_names:
                 msg = "Submitting job '%s' failed" % name
                 self.logging.error(msg)
                 job.runningJob.errors.append(msg)
                 continue
 
-            arcId = name2id[name]
-            jobAttributes[name] = arcId
-            self.logging.info("Submitted job %s with id %s" % (name, arcId))
+            jobAttributes[name] = arcIds[i]
+            self.logging.info("Submitted job %s with id %s" % (name, arcIds[i]))
+            i += 1
 
         return jobAttributes, None, service 
 
