@@ -475,10 +475,12 @@ class SchedulerARC(SchedulerInterface):
         remove the job from the CE.
         """
         if type(obj) == Task:
+            self.logging.debug("getOutput called for %i jobs" % len(obj.jobs))
             joblist = obj.jobs
             if outdir == '':
                 outdir = obj['outputDirectory']
         elif type(obj) == Job:
+            self.logging.debug("getOutput called for 1 job")
             joblist = [obj]
         else:
             raise SchedulerError('wrong argument type', str(type(obj)))
@@ -486,33 +488,33 @@ class SchedulerARC(SchedulerInterface):
         assert outdir != ''
         if outdir[-1] != '/': outdir += '/'
 
-        jobsFile, arcId2job = self.createJobsFile(joblist, "Will fetch")
+        for job in joblist:
+            tmpdir = tempfile.mkdtemp(prefix="joboutputs.", dir=outdir)
+            
+            cmd = self.pre_arcCmd + 'arcget --timeout=600 %s --dir %s' % (job.runningJob['schedulerId'], tmpdir)
+            self.logging.debug("Running command: %s" % cmd)
+            output, stat = self.ExecuteCommand(cmd)
+            self.logging.debug("Status and output of arcget: %i, '%s'" % (stat, output))
+            if stat != 0:
+                msg = "arcget failed with status %i: %s" % (stat, output)
+                self.logging.warning(msg)
+            else:
+                # Copy the dowlodaed files to their final destination
+                cmd = 'mv %s/*/* %s' % (tmpdir, outdir)
+                self.logging.debug("Moving files from %s/* to %s" % (tmpdir, outdir))
+                output, stat = self.ExecuteCommand(cmd)
+                if stat != 0:
+                    msg = "Moving files to final destination failed: %s" % (output)
+                    self.logging.warning(msg)
+                else:
+                    cmd = ' rm -r %s' % (tmpdir)
+                    self.logging.debug("Removing tempdir %s" % (tmpdir))
+                    output, stat = self.ExecuteCommand(cmd)
+                    if stat != 0:
+                        msg = "Removing tempdir: %s" % (output)
+                        self.logging.warning(msg)
 
-        # Create a tmp dir where ngget can create its subdirs of job
-        # output. Use outdir as the parent dir, to keep moving of files
-        # afterwards within the same files system (faster!)
-        tmpdir = tempfile.mkdtemp(prefix="joboutputs.", dir=outdir)
 
-        cmd = self.pre_arcCmd + 'arcget -i %s -dir %s' % (jobsFile.name, tmpdir)
-        self.logging.debug("Running command: %s" % cmd)
-        output, stat = self.ExecuteCommand(cmd)
-        self.logging.debug("Output of arcget: %s" % output)
-        jobsFile.close()
-        if stat != 0:
-            raise SchedulerError('arcget returned %i' % stat, output, cmd)
-
-        # Copy the dowlodaed files to their final destination
-        cmd = 'mv %s/*/* %s' % (tmpdir, outdir)
-        self.logging.debug("Moving files from %s/* to %s" % (tmpdir, outdir))
-        output, stat = self.ExecuteCommand(cmd)
-        if stat != 0:
-            raise SchedulerError('mv returned %i' % stat, output, cmd)
-
-        # Remove the tmp output dir
-        cmd = 'rm -r %s' % tmpdir
-        output, stat = self.ExecuteCommand(cmd)
-        if stat != 0:
-            raise SchedulerError('rm returned %i' % stat, output, cmd)
 
 
 
