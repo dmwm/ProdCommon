@@ -197,7 +197,7 @@ class Proxy:
     def ManualRenewCredential( self, proxy=None, vo='cms', group=None, role=None ):
         """
         """
-        cmd = 'voms-proxy-init -voms %s'%vo
+        cmd = 'voms-proxy-init -rfc -voms %s'%vo
 
         if group:
             cmd += ':/'+vo+'/'+group
@@ -316,7 +316,7 @@ class Proxy:
     def ManualRenewMyProxy( self ):
         """
         """
-        cmd = 'myproxy-init -d -n -s %s'%self.myproxyServer
+        cmd = 'export GT_PROXY_MODE=rfc; myproxy-init -d -n -s %s'%self.myproxyServer
 
         if len( self.serverDN.strip() ) > 0:
             credName = sha1(self.serverDN).hexdigest()
@@ -452,7 +452,7 @@ class Proxy:
         cmdList.append('env')
         cmdList.append('X509_USER_CERT=%s'%proxy)
         cmdList.append('X509_USER_KEY=%s'%proxy)
-        cmdList.append('voms-proxy-init -noregen -voms %s -cert %s -key %s -out %s -bits 1024 -valid %s'%\
+        cmdList.append('voms-proxy-init -rfc -noregen -voms %s -cert %s -key %s -out %s -bits 1024 -valid %s'%\
              (voAttr, proxy, proxy, proxy, vomsValid) )
 
         cmd = ' '.join(cmdList)
