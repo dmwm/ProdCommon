@@ -257,7 +257,7 @@ if __name__ == '__main__':
                        #if diz_filter.has_key(name):
                        #    filter = diz_filter[name]
                        #    print "filter = ", filter
-                       #    if (filter):
+                       #    if (filter): 
                        #        FilterUserProcessedDataset = UserProcessedDataset + '-' + str(filter)
                        #        datasetinfo['ProcessedDataset'] = FilterUserProcessedDataset 
                        #########################################################################    
