@@ -178,16 +178,16 @@ if __name__ == '__main__':
         sys.exit(1)
         
     ##### filter name takes from environment variable #####
-    try:
-       var_filter = os.getenv('var_filter')
-    except:
-       var_filter=''
-    diz_filter={}
-    if (var_filter):
-       diz_filter=json.loads(var_filter)
-       print "diz_filter = ", diz_filter
-    else:
-        print "no filter to add to ProcessedDataset"
+    #try:
+    #   var_filter = os.getenv('var_filter')
+    #except:
+    #   var_filter=''
+    #diz_filter={}
+    #if (var_filter):
+    #   diz_filter=json.loads(var_filter)
+    #   print "diz_filter = ", diz_filter
+    #else:
+    #    print "no filter to add to ProcessedDataset"
 
     if diz.has_key('UserProcessedDataset'): 
         UserProcessedDataset = diz['UserProcessedDataset']
@@ -254,12 +254,12 @@ if __name__ == '__main__':
                        datasetinfo['PSetContent'] = "TOBEADDED"
                        #########################################################################
                        datasetinfo['ProcessedDataset'] = UserProcessedDataset
-                       if diz_filter.has_key(name):
-                           filter = diz_filter[name]
-                           print "filter = ", filter
-                           if (filter):
-                               FilterUserProcessedDataset = UserProcessedDataset + '-' + str(filter)
-                               datasetinfo['ProcessedDataset'] = FilterUserProcessedDataset 
+                       #if diz_filter.has_key(name):
+                       #    filter = diz_filter[name]
+                       #    print "filter = ", filter
+                       #    if (filter):
+                       #        FilterUserProcessedDataset = UserProcessedDataset + '-' + str(filter)
+                       #        datasetinfo['ProcessedDataset'] = FilterUserProcessedDataset 
                        #########################################################################    
                        ### to check if the job output is composed by more files
                        modifyFile(f, os.path.basename(file_name), for_file)    
