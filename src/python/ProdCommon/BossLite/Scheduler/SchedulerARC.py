@@ -606,7 +606,7 @@ class SchedulerARC(SchedulerInterface):
                     elif not c["cluster"] and line.find("Name:") >= 0:
                         c["cluster"] = line.split(': ')[1]
 
-            clusters.append(c)
+            if c["cluster"]: clusters.append(c)
         return clusters
 
 
