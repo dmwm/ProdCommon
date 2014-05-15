@@ -252,9 +252,10 @@ class SchedulerSge (SchedulerInterface) :
         """
         ret_map={}
         #print schedIdList, service, objType
-        r = re.compile("(\d+) .* "+os.getlogin()+" \W+(\w+) .* (\S+)@(\w+)")
-        rnohost = re.compile("(\d+) .* "+os.getlogin()+" \W+(\w+) ")
-        cmd='qstat -u '+os.getlogin()
+        import pwd
+        r = re.compile("(\d+) .* "+pwd.getpwuid(os.geteuid()).pw_name+" \W+(\w+) .* (\S+)@(\w+)")
+        rnohost = re.compile("(\d+) .* "+pwd.getpwuid(os.geteuid()).pw_name+" \W+(\w+) ")
+        cmd='qstat -u '+pwd.getpwuid(os.geteuid()).pw_name
         #print cmd
         out, ret = self.ExecuteCommand(cmd)
         #print "<"+out+">"
