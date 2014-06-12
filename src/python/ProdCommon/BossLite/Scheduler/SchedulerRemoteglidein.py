@@ -770,8 +770,8 @@ class SchedulerRemoteglidein(SchedulerInterface) :
                 raise SchedulerError('Fatal','no copy command defined')
             self.remoteUserHost = self.remoteUserHostCommand.split(':')[1]
         else:
-            self.remoteCommand = 'gsissh'
-            self.remoteCopyCommand = 'gsiscp'
+            self.remoteCommand = 'eval `scram unsetenv -sh`; gsissh'
+            self.remoteCopyCommand = 'eval `scram unsetenv -sh`; gsiscp'
             self.remoteUserHost = self.remoteUserHostCommand
         self.remoteHost = self.remoteUserHostCommand.split('@')[-1]
         
