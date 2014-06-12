@@ -74,7 +74,7 @@ class Proxy:
         uName = None
         if proxy == None: proxy=self.getUserProxy()
 
-        cmd = "voms-proxy-info -file "+proxy+" -subject"
+        cmd = "eval `scram unsetenv -sh`; voms-proxy-info -file "+proxy+" -subject"
 
         out, ret = self.ExecuteCommand(cmd)
         if ret != 0 :
@@ -96,7 +96,7 @@ class Proxy:
         if not os.path.exists(proxy):
             return 0
 
-        cmd = 'voms-proxy-info -file '+proxy+' -timeleft 2>/dev/null'
+        cmd = 'eval `scram unsetenv -sh`; voms-proxy-info -file '+proxy+' -timeleft 2>/dev/null'
 
         timeLeftLocal,  ret = self.ExecuteCommand(cmd)
 
@@ -137,7 +137,7 @@ class Proxy:
     def getVomsLife(self, proxy):
         """
         """
-        cmd = 'voms-proxy-info -file '+proxy+' -actimeleft 2>/dev/null'
+        cmd = 'eval `scram unsetenv -sh`; voms-proxy-info -file '+proxy+' -actimeleft 2>/dev/null'
 
         ACtimeLeftLocal,  ret = self.ExecuteCommand(cmd)
 
@@ -173,7 +173,7 @@ class Proxy:
         if proxy == None: proxy=self.getUserProxy()
 
         ## check first attribute
-        cmd = 'export X509_USER_PROXY=%s; voms-proxy-info -fqan 2>/dev/null | head -1'%proxy
+        cmd = 'eval `scram unsetenv -sh`; export X509_USER_PROXY=%s; voms-proxy-info -fqan 2>/dev/null | head -1'%proxy
 
         reg="/%s/"%vo
         if group:
@@ -197,7 +197,7 @@ class Proxy:
     def ManualRenewCredential( self, proxy=None, vo='cms', group=None, role=None ):
         """
         """
-        cmd = 'voms-proxy-init -rfc -voms %s'%vo
+        cmd = 'eval `scram unsetenv -sh`; voms-proxy-init -rfc -voms %s'%vo
 
         if group:
             cmd += ':/'+vo+'/'+group
@@ -236,7 +236,7 @@ class Proxy:
         valid = True
 
         #cmd = 'export X509_USER_PROXY=%s; myproxy-info -d -s %s 2>/dev/null'%(proxy,self.myproxyServer)
-        cmd = 'myproxy-info -d -s %s 2>/dev/null'%(self.myproxyServer)
+        cmd = 'eval `scram unsetenv -sh`; myproxy-info -d -s %s 2>/dev/null'%(self.myproxyServer)
 
         out, ret = self.ExecuteCommand(cmd)
         if ret != 0 and ret != 1 :
@@ -298,7 +298,7 @@ class Proxy:
                     hours, minutes, seconds = credTimeleftList[ credIdx ]
                     timeleft = int(hours)*3600 + int(minutes)*60 + int(seconds)
                     if timeleft == 0:
-                        cleanupCmd = "myproxy-destroy -d -k %s"%(credNameList[credIdx]) 
+                        cleanupCmd = "eval `scram unsetenv -sh`; myproxy-destroy -d -k %s"%(credNameList[credIdx]) 
                         cleanCredCmdList.append( cleanupCmd )  
                     pass
 
@@ -316,7 +316,7 @@ class Proxy:
     def ManualRenewMyProxy( self ):
         """
         """
-        cmd = 'export GT_PROXY_MODE=rfc; myproxy-init -d -n -s %s'%self.myproxyServer
+        cmd = 'eval `scram unsetenv -sh`; export GT_PROXY_MODE=rfc; myproxy-init -d -n -s %s'%self.myproxyServer
 
         if len( self.serverDN.strip() ) > 0:
             credName = sha1(self.serverDN).hexdigest()
@@ -355,7 +355,7 @@ class Proxy:
         ## get a new delegated proxy
         proxyFilename= os.path.join(proxyCache, sha1(userDN + voAttr).hexdigest() )
 
-        cmdList.append('myproxy-logon -d -n -s %s -o %s -l \"%s\" -k %s -t 168:00'%\
+        cmdList.append('eval `scram unsetenv -sh`; myproxy-logon -d -n -s %s -o %s -l \"%s\" -k %s -t 168:00'%\
             (self.myproxyServer, proxyFilename, userDN, credName) )
 
         cmd = ' '.join(cmdList)
@@ -377,14 +377,14 @@ class Proxy:
         """
 
         # get vo, group and role from the current certificate
-        cmd = 'env X509_USER_PROXY=%s voms-proxy-info -vo 2>/dev/null | head -1'%proxyFilename
+        cmd = 'eval `scram unsetenv -sh`; env X509_USER_PROXY=%s voms-proxy-info -vo 2>/dev/null | head -1'%proxyFilename
         att, ret = self.ExecuteCommand(cmd)
         if ret != 0:
             raise Exception("Unable to get VO for proxy %s! Exit code:%s"%(proxyFilename, ret) )
         vo = att.replace('\n','')
 
         # at least /cms/Role=NULL/Capability=NULL
-        cmd = 'env X509_USER_PROXY=%s voms-proxy-info -fqan 2>/dev/null | head -1'%proxyFilename
+        cmd = 'eval `scram unsetenv -sh`; env X509_USER_PROXY=%s voms-proxy-info -fqan 2>/dev/null | head -1'%proxyFilename
         att, ret = self.ExecuteCommand(cmd)
         if ret != 0:
             raise Exception("Unable to get FQAN for proxy %s! Exit code:%s"%(proxyFilename, ret) )
@@ -408,7 +408,7 @@ class Proxy:
         cmdList.append('X509_USER_KEY=$HOME/.globus/hostkey.pem')
 
         ## refresh an existing proxy
-        cmdList.append('myproxy-logon -d -n -s %s -a %s -o %s -k %s -t 168:00'%\
+        cmdList.append('eval `scram unsetenv -sh`; myproxy-logon -d -n -s %s -a %s -o %s -k %s -t 168:00'%\
             (self.myproxyServer, proxyFilename, proxyFilename, credName) )
 
         cmd = ' '.join(cmdList)
@@ -452,7 +452,7 @@ class Proxy:
         cmdList.append('env')
         cmdList.append('X509_USER_CERT=%s'%proxy)
         cmdList.append('X509_USER_KEY=%s'%proxy)
-        cmdList.append('voms-proxy-init -rfc -noregen -voms %s -cert %s -key %s -out %s -bits 1024 -valid %s'%\
+        cmdList.append('eval `scram unsetenv -sh`; voms-proxy-init -rfc -noregen -voms %s -cert %s -key %s -out %s -bits 1024 -valid %s'%\
              (voAttr, proxy, proxy, proxy, vomsValid) )
 
         cmd = ' '.join(cmdList)
