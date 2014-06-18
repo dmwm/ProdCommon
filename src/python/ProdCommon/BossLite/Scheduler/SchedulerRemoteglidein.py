@@ -753,10 +753,9 @@ class SchedulerRemoteglidein(SchedulerInterface) :
     def initializeGsissh(self,obj):
         import time
         from zlib import adler32
-        import shlex
         
         if obj['serverName'] :
-            # cast to string to avoid issues with unicode later in shlex :-(
+            # cast to string to avoid issues with unicode
             self.remoteUserHostCommand = str(obj['serverName'])
             self.logging.info("contacting remote host %s" % self.remoteUserHostCommand)
         else:
@@ -894,7 +893,7 @@ class SchedulerRemoteglidein(SchedulerInterface) :
             # to keep CP link alive
 
             self.logging.debug("Execute command :\n%s" % command)
-            bkgGsissh = subprocess.Popen(shlex.split(command))
+            bkgGsissh = subprocess.Popen(command,shell=True)
 
             # make sure the ControlPath link is there before going on
             # to avoid races with later gsi* commands
