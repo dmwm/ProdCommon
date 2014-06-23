@@ -765,12 +765,14 @@ class SchedulerRemoteglidein(SchedulerInterface) :
             self.remoteCommand = self.remoteUserHostCommand.split(':')[0]
             if self.remoteCommand == 'ssh':
                 self.remoteCopyCommand = 'scp'
+                self.remoteCommandName = 'ssh'
             else:
                 raise SchedulerError('Fatal','no copy command defined')
             self.remoteUserHost = self.remoteUserHostCommand.split(':')[1]
         else:
             self.remoteCommand = 'eval `scram unsetenv -sh`; gsissh'
             self.remoteCopyCommand = 'eval `scram unsetenv -sh`; gsiscp'
+            self.remoteCommandName = 'gsissh'
             self.remoteUserHost = self.remoteUserHostCommand
         self.remoteHost = self.remoteUserHostCommand.split('@')[-1]
         
@@ -898,7 +900,7 @@ class SchedulerRemoteglidein(SchedulerInterface) :
             # make sure the ControlPath link is there before going on
             # to avoid races with later gsi* commands
             while not os.access(sshLink, os.F_OK) :
-                self.logging.info("Establishing %s ControlPath. Wait 2 sec ..."%self.remoteCommand)
+                self.logging.info("Establishing %s ControlPath. Wait 2 sec ..."%self.remoteCommandName)
                 time.sleep(2)
             # update time stamp of ssh CP link to signal that it was renewed
             os.utime(sshLink,None)
