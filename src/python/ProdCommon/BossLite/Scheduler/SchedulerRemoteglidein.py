@@ -114,8 +114,8 @@ class SchedulerRemoteglidein(SchedulerInterface) :
         self.logging.info("COPY FILES TO REMOTE HOST")
 
         # make sure there's a condor work directory on remote host
-        command = "%s %s %s " % \
-            (self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
+        command = "%s %s %s %s " % \
+            (self.unsetenvScram, self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
         command += " mkdir -p %s" % (taskId )
         self.logging.debug("Execute command :\n%s" % command)
         (status, output) = commands.getstatusoutput(command)
@@ -146,8 +146,8 @@ class SchedulerRemoteglidein(SchedulerInterface) :
 
         self.logging.info("SUBMIT TO REMOTE GLIDEIN FRONTEND")
 
-        command = "%s %s %s " % \
-            (self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
+        command = "%s %s %s %s " % \
+            (self.unsetenvScram, self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
         command += '"cd %s; ' % (taskId)
         command += ' condor_submit %s %s;' % (submitOptions, jdlLocalFileName)
         # in order to look at condor_submit exit code, need a shell dependent addition
@@ -426,8 +426,8 @@ class SchedulerRemoteglidein(SchedulerInterface) :
                 if "already exists" in output:
                     self.removeGsisshSocket()
 
-            command = "%s %s %s " % \
-                (self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
+            command = "%s %s %s %s " % \
+                (self.unsetenvScram, self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
             command += ' "condor_history -userlog %s/condor.log' % taskId
             command += ' -xml"'
 
@@ -514,8 +514,8 @@ class SchedulerRemoteglidein(SchedulerInterface) :
 
         if somethingDone :
             # get ExitCodes from fjrs"
-            command = "%s %s %s " % \
-            (self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
+            command = "%s %s %s %s " % \
+            (self.unsetenvScram, self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
             command += '"cd %s; ' % (taskId)
             # need to put single and double quotes and tab (\t) in
             # shell command for gsissh. So get horrible escaping here
@@ -569,8 +569,8 @@ class SchedulerRemoteglidein(SchedulerInterface) :
             schedulerId = str(job.runningJob['schedulerId']).strip()
             jobId  = schedulerId.split('//')[-1]
 
-            command = '%s %s %s ' \
-                % (self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
+            command = '%s %s %s %s ' \
+                % (self.unsetenvScram, self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
             command += ' "condor_rm  %s"' % (jobId)
 
             self.logging.debug("Execute command :\n%s" % command)
@@ -596,29 +596,26 @@ class SchedulerRemoteglidein(SchedulerInterface) :
         while fileList:
             currentFiles = fileList[:filesPerRsync]
             fileList = fileList[filesPerRsync:]
-            commandList = ['rsync', '-azb',
-                           '--backup-dir=%s/Submission_%s' % (outdir, \
-                                                              subCounter),
-                           '-e',
-                           '%s %s' % (self.remoteCommand, 
-                                      self.gsisshOptions)]
+            command = self.unsetenvScram + 'rsync -azb ' + \
+                       ' --backup-dir=%s/Submission_%s' % (outdir, subCounter) + \
+                       ' -e "%s %s" ' % (self.remoteCommand, self.gsisshOptions)
             for oneFile in currentFiles:
-                commandList.append("%s:%s/%s" % ( self.remoteUserHost,
-                                                  self.taskId,
-                                                  oneFile ))
-            commandList.append(outdir + '/')
+                command = command + " %s:%s/%s" % ( self.remoteUserHost,
+                                                    self.taskId,
+                                                    oneFile )
+            command = command + ' ' + outdir + '/'
             self.logging.info("Preparing to rsync %s files" % \
                                 len(currentFiles))
-            rsyncCommand = subprocess.Popen(commandList,
+            rsyncCommand = subprocess.Popen(command, shell=True,
                                             stdout=subprocess.PIPE,
                                             stderr=subprocess.STDOUT)
             stdout, _ = rsyncCommand.communicate()
-            totalStdout += "Starting rsync: %s\n" % commandList
+            totalStdout += "Starting rsync: %s\n" % command
             totalStdout += stdout
             if rsyncCommand.returncode:
                 outCode = rsyncCommand.returncode
                 self.logging.error("Rsync complained. Command %s" % \
-                                        commandList)
+                                        command)
                 self.logging.error("Rsync stdout: %s" % stdout)
 
         return outCode, totalStdout
@@ -702,8 +699,8 @@ class SchedulerRemoteglidein(SchedulerInterface) :
         fp.write(horsep)
         fp.write(sep1)
         
-        command = '%s %s %s ' \
-                  % (self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
+        command = '%s %s %s %s ' \
+                  % (self.unsetenvScram, self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
         command += ' "condor_history -match 1 -userlog %s/condor.log -l %s"' % \
                    (taskId, condorId)
         (status, output) = commands.getstatusoutput(command)
@@ -718,8 +715,8 @@ class SchedulerRemoteglidein(SchedulerInterface) :
         # is 1(Idle), 2(Run) or 5(Held) but may cost little to do always
 
         fp.write(sep2)
-        command = '%s %s %s ' \
-                  % (self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
+        command = '%s %s %s %s ' \
+                  % (self.unsetenvScram, self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
         command += ' "condor_q -l %s"' % condorId
         (status, output) = commands.getstatusoutput(command)
         
@@ -765,14 +762,14 @@ class SchedulerRemoteglidein(SchedulerInterface) :
             self.remoteCommand = self.remoteUserHostCommand.split(':')[0]
             if self.remoteCommand == 'ssh':
                 self.remoteCopyCommand = 'scp'
-                self.remoteCommandName = 'ssh'
+                self.unsetenvScram = 'eval `scram unsetenv -sh`; '
             else:
                 raise SchedulerError('Fatal','no copy command defined')
             self.remoteUserHost = self.remoteUserHostCommand.split(':')[1]
         else:
-            self.remoteCommand = 'eval `scram unsetenv -sh`; gsissh'
-            self.remoteCopyCommand = 'eval `scram unsetenv -sh`; gsiscp'
-            self.remoteCommandName = 'gsissh'
+            self.remoteCommand = 'gsissh'
+            self.remoteCopyCommand = 'gsiscp'
+            self.unsetenvScram = 'eval `scram unsetenv -sh`; '
             self.remoteUserHost = self.remoteUserHostCommand
         self.remoteHost = self.remoteUserHostCommand.split('@')[-1]
         
@@ -789,9 +786,9 @@ class SchedulerRemoteglidein(SchedulerInterface) :
 
         tmpDir="/tmp/%s" % os.environ['LOGNAME']
         sshLinkDir="/tmp/%s/.ssh/" % os.environ['LOGNAME']
-        command = "voms-proxy-info -id"
+        command = self.unsetenvScram + "voms-proxy-info --identity"
         vomsId = commands.getoutput(command)
-        command = "voms-proxy-info -fqan | head -1"
+        command = self.unsetenvScram + "voms-proxy-info --fqan | head -1"
         vomsId += commands.getoutput(command)
         sshLink = sshLinkDir + "ssh-link-%s-%s" % \
             (adler32(vomsId), self.remoteHost)
@@ -874,8 +871,8 @@ class SchedulerRemoteglidein(SchedulerInterface) :
         if self.sshControlPersist.lower() == "yes" :
             # need to create a permanent socket, no harm in doing twice
             sshLinkOK = False
-            command = "%s  -N -n %s %s /bin/true" % \
-                (self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
+            command = "%s %s  -N -n %s %s /bin/true" % \
+                (self.unsetenvScram, self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
         if self.sshControlPersist.isdigit() :
             # interprete as persist time in seconds
             persistTime=int(self.sshControlPersist)
@@ -883,8 +880,8 @@ class SchedulerRemoteglidein(SchedulerInterface) :
                 linkTime=(time.time() - os.stat(sshLink).st_ctime)
                 sshLinkOK = (persistTime - linkTime) > persistTime/2
 
-            command = "%s  %s %s " % \
-                      (self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
+            command = "%s %s  %s %s " % \
+                      (self.unsetenvScram, self.remoteCommand, self.gsisshOptions, self.remoteUserHost)
             command += ' "sleep %s"' % persistTime
 
         #self.logging.info("SB sshLinkOK after all checks = %s" % sshLinkOK)
@@ -900,7 +897,7 @@ class SchedulerRemoteglidein(SchedulerInterface) :
             # make sure the ControlPath link is there before going on
             # to avoid races with later gsi* commands
             while not os.access(sshLink, os.F_OK) :
-                self.logging.info("Establishing %s ControlPath. Wait 2 sec ..."%self.remoteCommandName)
+                self.logging.info("Establishing %s ControlPath. Wait 2 sec ..."%self.remoteCommand)
                 time.sleep(2)
             # update time stamp of ssh CP link to signal that it was renewed
             os.utime(sshLink,None)
