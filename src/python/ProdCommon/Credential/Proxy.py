@@ -43,6 +43,7 @@ class Proxy:
             proxy = os.environ['X509_USER_PROXY']
         else:
             proxy = '/tmp/x509up_u'+str(os.getuid())
+            os.environ['X509_USER_PROXY'] = proxy
 
         return proxy.strip()
 
