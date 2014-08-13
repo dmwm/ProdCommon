@@ -37,7 +37,8 @@ class ProtocolLcgUtils(Protocol):
         if len(env) > 0:
             self.fresh_env = 'unset LD_LIBRARY_PATH; unset GLITE_ENV_SET; export PATH=/usr/bin:/bin; source /etc/profile; source %s ; '%env
         else:
-            raise Exception("Missing environment")
+            self.fresh_env = "eval `scram unsetenv -sh` ; "
+            #raise Exception("Cant's source Grid environment")
 
     def simpleOutputCheck(self, outLines):
         """
