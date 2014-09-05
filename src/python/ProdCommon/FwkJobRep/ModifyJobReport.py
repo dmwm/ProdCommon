@@ -84,6 +84,8 @@ def modifyFile(f, file_name, for_file):
            
     updateSurlForGrid(f, newSurlForGrid)
 
+    f['PNN'] = for_file['PNN']
+
     return
 
 
@@ -205,6 +207,8 @@ if __name__ == '__main__':
            for aFile in report.analysisFiles:
                if (aFile['SEName'] == None):
                    aFile['SEName']=for_file['se_name']
+               if (aFile['PNN'] == None):
+                   aFile['PNN']=for_file['PNN']
                if (aFile['LFN'] == None):    
                    aFile['LFN']=for_file['for_lfn']+os.path.basename(file_name)
                if (aFile['PFN'] == None):    
@@ -216,6 +220,7 @@ if __name__ == '__main__':
            report.save()
        report.write("NewFrameworkJobReport.xml")         
     else:
+        print "WORKING ON EDM FILE"
         if (len(report.files) != 0):
             ### f is <file> tag
             for f in report.files:
