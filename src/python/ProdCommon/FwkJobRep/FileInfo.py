@@ -40,6 +40,7 @@ class FileInfo(dict):
         self.setdefault("TotalEvents", None)
         self.setdefault("EventsRead", None)
         self.setdefault("SEName", None)
+        self.setdefault("PNN", None)
         self.setdefault("ModuleLabel", None)
         self.setdefault("Catalog", None)
         self.setdefault("OutputModuleClass", None)
