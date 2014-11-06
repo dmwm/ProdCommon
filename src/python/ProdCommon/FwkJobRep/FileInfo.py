@@ -415,6 +415,7 @@ class AnalysisFile(dict):
         self.setdefault("LFN", None)
         self.setdefault("PFN", None)
         self.setdefault("SEName", None)
+        self.setdefault("PNN", None)
         ## FEDE FOR COPY DATA
         self.setdefault("SurlForGrid", None)
         ###
